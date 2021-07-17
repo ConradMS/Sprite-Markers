@@ -1,11 +1,11 @@
-package com.mapmarkers;
+package com.spritemarkers;
 
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 
 @ConfigGroup("spriteMarkers")
-public interface BetterCombatXPDropsConfig extends Config
+public interface SpriteMarkersConfig extends Config
 {
 	@ConfigItem(
 		position = 1,
@@ -80,7 +80,7 @@ public interface BetterCombatXPDropsConfig extends Config
 			position = 8,
 			keyName = "clear",
 			name = "Clear Sprites",
-			description = "Type Clear to clear all loaded sprites"
+			description = "Type clear to clear all loaded sprites"
 	)
 	default String clear()
 	{

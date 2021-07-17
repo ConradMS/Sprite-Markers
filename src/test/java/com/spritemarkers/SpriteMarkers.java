@@ -1,13 +1,13 @@
-package com.mapmarkers;
+package com.spritemarkers;
 
 import net.runelite.client.RuneLite;
 import net.runelite.client.externalplugins.ExternalPluginManager;
 
-public class BetterCombatXPDrops
+public class SpriteMarkers
 {
 	public static void main(String[] args) throws Exception
 	{
-		ExternalPluginManager.loadBuiltin(BetterCombatXPDropsPlugin.class);
+		ExternalPluginManager.loadBuiltin(SpriteMarkersPlugin.class);
 		RuneLite.main(args);
 	}
 }
