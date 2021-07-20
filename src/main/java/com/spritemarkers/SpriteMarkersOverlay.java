@@ -74,6 +74,11 @@ public class SpriteMarkersOverlay extends Overlay
             if(toImage != null && spriteMarker.worldPoint.distanceTo(playerLoc) <= MAX_TILES)
             {
                 final LocalPoint locPoint = spriteMarker.getLocalPoint();
+
+                if (locPoint == null) {
+                    return null;
+                }
+
                 toImage = ImageUtil.resizeImage(toImage, toImage.getWidth() * spriteMarker.getScale() / 100, toImage.getHeight() * spriteMarker.getScale() / 100);
                 OverlayUtil.renderImageLocation(client, graphics, locPoint, toImage, 0);
             }
