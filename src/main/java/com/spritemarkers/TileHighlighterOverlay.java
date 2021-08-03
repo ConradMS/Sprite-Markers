@@ -2,6 +2,7 @@ package com.spritemarkers;
 
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -45,7 +46,7 @@ public class TileHighlighterOverlay extends Overlay
             return null;
         }
 
-        final ArrayList<SpriteMarker> spriteMarkers = plugin.getSpriteMarkers();
+        final ArrayList<SpriteMarker> spriteMarkers = plugin.getSpriteMarkersLoaded();
 
         if(spriteMarkers.isEmpty())
         {
@@ -58,7 +59,15 @@ public class TileHighlighterOverlay extends Overlay
 
             if(playerLoc.distanceTo(spriteMarker.getWorldPoint()) <= MAX_TILES)
             {
-                Polygon tilePolygon = Perspective.getCanvasTilePoly(client, spriteMarker.getLocalPoint());
+                WorldPoint worldLoc = spriteMarker.getWorldPoint();
+                LocalPoint localPoint = LocalPoint.fromWorld(client, worldLoc);
+
+                if(localPoint == null)
+                {
+                    return null;
+                }
+
+                Polygon tilePolygon = Perspective.getCanvasTilePoly(client, localPoint);
                 if(tilePolygon != null)
                 {
                     OverlayUtil.renderPolygon(graphics, tilePolygon, Color.WHITE);

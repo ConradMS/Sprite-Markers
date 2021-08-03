@@ -3,6 +3,7 @@ package com.spritemarkers;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
 import net.runelite.api.Point;
+import net.runelite.api.coords.LocalPoint;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.game.SpriteManager;
 import net.runelite.client.ui.overlay.OverlayLayer;
@@ -51,7 +52,7 @@ public class MinimapSpriteOverlay extends Overlay
             return null;
         }
 
-        final ArrayList<SpriteMarker> spriteMarkers = plugin.getSpriteMarkers();
+        final ArrayList<SpriteMarker> spriteMarkers = plugin.getSpriteMarkersLoaded();
 
         if(spriteMarkers.isEmpty())
         {
@@ -71,7 +72,14 @@ public class MinimapSpriteOverlay extends Overlay
 
         if(playerLoc != null && playerLoc.distanceTo(spriteMarker.getWorldPoint()) <= MINIMAP_RADIUS)
         {
-            Point miniMapPoint = Perspective.localToMinimap(client, spriteMarker.getLocalPoint());
+            LocalPoint localPoint = LocalPoint.fromWorld(client, spriteMarker.worldPoint);
+
+            if(localPoint == null)
+            {
+                return;
+            }
+
+            Point miniMapPoint = Perspective.localToMinimap(client, localPoint);
 
             if(miniMapPoint == null)
             {

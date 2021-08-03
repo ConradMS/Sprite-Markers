@@ -8,10 +8,10 @@ import net.runelite.client.config.ConfigItem;
 public interface SpriteMarkersConfig extends Config
 {
 	@ConfigItem(
-		position = 1,
-		keyName = "showSprites",
-		name = "Display Sprites",
-		description = "Hides/Shows ground sprites"
+			position = 1,
+			keyName = "showSprites",
+			name = "Display Sprites",
+			description = "Hides/Shows ground sprites"
 	)
 	default boolean showSprites()
 	{

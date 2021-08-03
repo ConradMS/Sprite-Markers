@@ -22,10 +22,12 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+
 @PluginDescriptor(
-	name = "Sprite Markers",
-	description = "Mark tiles with sprites",
-	tags = {"overlay", "tiles"}
+		name = "Sprite Markers",
+		description = "Mark tiles with sprites",
+		tags = {"overlay", "tiles"}
 )
 public class SpriteMarkersPlugin extends Plugin
 {
@@ -61,10 +63,7 @@ public class SpriteMarkersPlugin extends Plugin
 	protected static final String REGION = "Region_";
 
 	@Getter
-	private final ArrayList<SpriteMarker> spriteMarkers = new ArrayList<>();
-
-	@Getter
-	private final ArrayList<WorldPoint> worldLocations = new ArrayList<>();
+	private final ArrayList<SpriteMarker> spriteMarkersLoaded = new ArrayList<>();
 
 	@Override
 	protected void startUp() throws Exception
@@ -81,21 +80,41 @@ public class SpriteMarkersPlugin extends Plugin
 		overlayManager.remove(overlay);
 		overlayManager.remove(highlighterOverlay);
 		overlayManager.remove(minimapSpriteOverlay);
-		spriteMarkers.clear();
-		worldLocations.clear();
+		spriteMarkersLoaded.clear();
+	}
+
+	private boolean containsSprite(ArrayList<SpriteMarkerID> spriteMarkerIDS, SpriteMarkerID targetSpriteMarker)
+	{
+		for(SpriteMarkerID spriteMarkerID : spriteMarkerIDS)
+		{
+			if(spriteMarkerID.equals(targetSpriteMarker))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Subscribe
 	public void onMenuEntryAdded(MenuEntryAdded menuEntryAdded)
 	{
 		final boolean markerKeyPressed = client.isKeyPressed(LEFT_CONTROL_KEYCODE);
+
 		if (markerKeyPressed && menuEntryAdded.getOption().equals("Cancel"))
 		{
 			final Tile targetTile = client.getSelectedSceneTile();
 
 			if(targetTile != null)
 			{
-				final boolean spriteHere = worldLocations.contains(targetTile.getWorldLocation());
+				final LocalPoint localPoint = targetTile.getLocalLocation();
+				final WorldPoint worldLoc = WorldPoint.fromLocalInstance(client, localPoint);
+				final int regionID = worldLoc.getRegionID();
+				final SpriteMarkerID targetSpriteMarkerID = new SpriteMarkerID(regionID,
+						worldLoc.getRegionX(), worldLoc.getRegionY(), client.getPlane(),
+						config.spriteID(), config.scale());
+
+				final ArrayList<SpriteMarkerID> savedSprites = jsonToSprite(regionID);
+				final boolean spriteHere = containsSprite(savedSprites, targetSpriteMarkerID);
 
 				MenuEntry[] menuEntries = client.getMenuEntries();
 				menuEntries = Arrays.copyOf(menuEntries, menuEntries.length + 1);
@@ -143,24 +162,20 @@ public class SpriteMarkersPlugin extends Plugin
 		}
 	}
 
-	private void addTileSprite() {
+	private void addTileSprite()
+	{
 		final Tile targetTile = client.getSelectedSceneTile();
 		if (targetTile != null)
 		{
-			final WorldPoint worldLoc = targetTile.getWorldLocation();
-			final LocalPoint tileSceneLocation = targetTile.getLocalLocation();
-
-			if (tileSceneLocation != null && worldLoc != null)
-			{
-				worldLocations.add(worldLoc);
-				spriteMarkers.add(new SpriteMarker(worldLoc.getRegionID(), config.spriteID(), config.scale(), tileSceneLocation, worldLoc));
-			}
-
-			if (worldLoc != null)
-			{
-				saveSprites(worldLoc.getRegionID());
-			}
+			final LocalPoint localPoint = targetTile.getLocalLocation();
+			final WorldPoint worldLoc = WorldPoint.fromLocalInstance(client, localPoint);
+			final int regionID = worldLoc.getRegionID();
+			SpriteMarkerID spriteMarkerID = new SpriteMarkerID(regionID, worldLoc.getRegionX(), worldLoc.getRegionY(),
+					client.getPlane(), config.spriteID(), config.scale());
+			saveSprite(regionID, spriteMarkerID);
+			loadSprites();
 		}
+
 	}
 
 	private void removeTileSprite()
@@ -172,76 +187,98 @@ public class SpriteMarkersPlugin extends Plugin
 			return;
 		}
 
-		final WorldPoint targetLocation = tile.getWorldLocation();
+		final LocalPoint localPoint = tile.getLocalLocation();
+		final WorldPoint targetLocation = WorldPoint.fromLocalInstance(client, localPoint);
+		final int regionID = targetLocation.getRegionID();
+		final SpriteMarkerID TargetSpriteMarkerID = new SpriteMarkerID(regionID, targetLocation.getRegionX(),
+				targetLocation.getRegionY(), client.getPlane(), config.spriteID(), config.scale());
 
-		for (final SpriteMarker spriteMarker : spriteMarkers)
+		ArrayList<SpriteMarkerID> currSprites = jsonToSprite(regionID);
+
+		for (SpriteMarkerID spriteMarkerID : currSprites)
 		{
-			final WorldPoint worldLoc = spriteMarker.getWorldPoint();
-
-			if(worldLoc.equals(targetLocation))
+			if(spriteMarkerID.equals(TargetSpriteMarkerID))
 			{
-				spriteMarkers.remove(spriteMarker);
-				saveSprites(targetLocation.getRegionID());
-				worldLocations.remove(targetLocation);
+				currSprites.remove(spriteMarkerID);
 				break;
 			}
 		}
-	}
 
-	void saveSprites(int regionId)
-	{
-		ArrayList<SpriteMarker> inRegionPoints = new ArrayList<>();
-		for(SpriteMarker spriteMarker : spriteMarkers)
+		if(!currSprites.isEmpty())
 		{
-			if(spriteMarker.getRegionId() == regionId)
-			{
-				inRegionPoints.add(spriteMarker);
-			}
-		}
-
-		if(!inRegionPoints.isEmpty())
-		{
-			String spriteMarkersToJson = gson.toJson(inRegionPoints);
-			configManager.setConfiguration(CONFIG_GROUP, REGION + regionId, spriteMarkersToJson);
+			String spriteMarkersToJson = gson.toJson(currSprites);
+			configManager.setConfiguration(CONFIG_GROUP, REGION + regionID, spriteMarkersToJson);
 		} else
 		{
-			configManager.unsetConfiguration(CONFIG_GROUP, REGION + regionId);
+			configManager.unsetConfiguration(CONFIG_GROUP, REGION + regionID);
 		}
+
+		loadSprites();
+	}
+
+	void saveSprite(int regionId, SpriteMarkerID newSprite)
+	{
+		ArrayList<SpriteMarkerID> currPoints = jsonToSprite(regionId);
+		currPoints.add(newSprite);
+
+		String spriteMarkersToJson = gson.toJson(currPoints);
+		configManager.setConfiguration(CONFIG_GROUP, REGION + regionId, spriteMarkersToJson);
 	}
 
 	void loadSprites()
 	{
-		spriteMarkers.clear();
-		worldLocations.clear();
+		spriteMarkersLoaded.clear();
 		int[] loadedRegions = client.getMapRegions();
 
 		if(loadedRegions != null)
 		{
 			for(int loadedRegion : loadedRegions)
 			{
-				spriteMarkers.addAll(jsonToSprite(loadedRegion));
-			}
-
-			for(SpriteMarker spriteMarker : spriteMarkers)
-			{
-				final WorldPoint worldLoc = spriteMarker.getWorldPoint();
-				spriteMarker.setLocalPoint(LocalPoint.fromWorld(client, worldLoc));
-				worldLocations.add(worldLoc);
+				ArrayList<SpriteMarkerID> regionSprites = jsonToSprite(loadedRegion);
+				ArrayList<SpriteMarker> spriteMarkers = getSpriteMarkers(regionSprites);
+				spriteMarkersLoaded.addAll(spriteMarkers);
 			}
 		}
 	}
 
-	ArrayList<SpriteMarker> jsonToSprite(int regionId)
+	ArrayList<SpriteMarkerID> jsonToSprite(int regionId)
 	{
 		String json = configManager.getConfiguration(CONFIG_GROUP, REGION + regionId);
 		if(json != null && !json.equals(""))
 		{
-			return gson.fromJson(json, new TypeToken<ArrayList<SpriteMarker>>(){}.getType());
+			return gson.fromJson(json, new TypeToken<ArrayList<SpriteMarkerID>>(){}.getType());
 		} else
+		{
+			return new ArrayList<SpriteMarkerID>();
+		}
+	}
+
+	private ArrayList<SpriteMarker> getSpriteMarkers(ArrayList<SpriteMarkerID> regionSprites)
+	{
+		if(regionSprites.isEmpty())
 		{
 			return new ArrayList<SpriteMarker>();
 		}
+		ArrayList<SpriteMarker> spriteMarkers = new ArrayList<SpriteMarker>();
+
+		for (SpriteMarkerID spriteMarkerID : regionSprites)
+		{
+			WorldPoint worldLoc = WorldPoint.fromRegion(spriteMarkerID.getRegionId(), spriteMarkerID.getRegionX(),
+					spriteMarkerID.getRegionY(), spriteMarkerID.getPlane());
+
+			SpriteMarker spriteMarker = new SpriteMarker(spriteMarkerID.getSpriteId(), spriteMarkerID.getScale(), worldLoc);
+			spriteMarkers.add(spriteMarker);
+			final Collection<WorldPoint> localWorldPoints = WorldPoint.toLocalInstance(client, spriteMarker.getWorldPoint());
+
+			for(WorldPoint worldPoint : localWorldPoints)
+			{
+				spriteMarkers.add(new SpriteMarker(spriteMarkerID.getSpriteId(), spriteMarkerID.getScale(), worldPoint));
+			}
+		}
+
+		return spriteMarkers;
 	}
+
 
 	@Provides
 	SpriteMarkersConfig provideConfig(ConfigManager configManager)

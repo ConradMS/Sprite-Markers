@@ -51,7 +51,7 @@ public class SpriteMarkersOverlay extends Overlay
         {
             return null;
         }
-        final ArrayList<SpriteMarker> spriteMarkers = plugin.getSpriteMarkers();
+        final ArrayList<SpriteMarker> spriteMarkers = plugin.getSpriteMarkersLoaded();
         if (spriteMarkers.isEmpty())
         {
             return null;
@@ -73,9 +73,11 @@ public class SpriteMarkersOverlay extends Overlay
 
             if(toImage != null && spriteMarker.worldPoint.distanceTo(playerLoc) <= MAX_TILES)
             {
-                final LocalPoint locPoint = spriteMarker.getLocalPoint();
+                final WorldPoint worldLoc = spriteMarker.getWorldPoint();
+                final LocalPoint locPoint = LocalPoint.fromWorld(client, worldLoc);
 
-                if (locPoint == null) {
+                if (locPoint == null)
+                {
                     return null;
                 }
 
@@ -89,12 +91,11 @@ public class SpriteMarkersOverlay extends Overlay
 
             for(SpriteMarker spriteMarker : spriteMarkers)
             {
-                if(configManager.getConfiguration(SpriteMarkersPlugin.CONFIG_GROUP, SpriteMarkersPlugin.REGION + spriteMarker.regionId) != null)
-                    configManager.unsetConfiguration(SpriteMarkersPlugin.CONFIG_GROUP, SpriteMarkersPlugin.REGION + spriteMarker.regionId);
+                if(configManager.getConfiguration(SpriteMarkersPlugin.CONFIG_GROUP, SpriteMarkersPlugin.REGION + spriteMarker.getWorldPoint().getRegionID()) != null)
+                    configManager.unsetConfiguration(SpriteMarkersPlugin.CONFIG_GROUP, SpriteMarkersPlugin.REGION + spriteMarker.getWorldPoint().getRegionID());
             }
 
-            plugin.getSpriteMarkers().clear();
-            plugin.getWorldLocations().clear();
+            plugin.getSpriteMarkersLoaded().clear();
         }
         return null;
     }
