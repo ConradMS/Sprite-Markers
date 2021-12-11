@@ -58,6 +58,7 @@ public class SpriteMarkersPlugin extends Plugin
 	private final static int LEFT_CONTROL_KEYCODE = 82;
 	private final static String ADD_SPRITE = "Add Sprite";
 	private final static String REMOVE_SPRITE = "Remove Sprite";
+	private final static String CANCEL = "Cancel";
 
 	protected static final  String CONFIG_GROUP = "spriteMarkers";
 	protected static final String REGION = "Region_";
@@ -96,11 +97,11 @@ public class SpriteMarkersPlugin extends Plugin
 	}
 
 	@Subscribe
-	public void onMenuEntryAdded(MenuEntryAdded menuEntryAdded)
+	public void onMenuEntryAdded(MenuEntryAdded menuEntryEvent)
 	{
 		final boolean markerKeyPressed = client.isKeyPressed(LEFT_CONTROL_KEYCODE);
 
-		if (markerKeyPressed && menuEntryAdded.getOption().equals("Cancel"))
+		if (markerKeyPressed && menuEntryEvent.getOption().equals(CANCEL))
 		{
 			final Tile targetTile = client.getSelectedSceneTile();
 
@@ -116,23 +117,19 @@ public class SpriteMarkersPlugin extends Plugin
 				final ArrayList<SpriteMarkerID> savedSprites = jsonToSprite(regionID);
 				final boolean spriteHere = containsSprite(savedSprites, targetSpriteMarkerID);
 
-				MenuEntry[] menuEntries = client.getMenuEntries();
-				menuEntries = Arrays.copyOf(menuEntries, menuEntries.length + 1);
-				MenuEntry defaultOption = new MenuEntry();
-
 				if (!spriteHere)
 				{
-					defaultOption.setOption(ADD_SPRITE);
+					client.createMenuEntry(-1).setOption(ADD_SPRITE)
+							.setTarget(menuEntryEvent.getTarget())
+							.setType(MenuAction.RUNELITE)
+							.onClick(e -> addTileSprite());
 				} else
 				{
-					defaultOption.setOption(REMOVE_SPRITE);
+					client.createMenuEntry(-1).setOption(REMOVE_SPRITE)
+							.setTarget(menuEntryEvent.getTarget())
+							.setType(MenuAction.RUNELITE)
+							.onClick(e -> removeTileSprite());
 				}
-
-				defaultOption.setTarget(menuEntryAdded.getTarget());
-				defaultOption.setType(MenuAction.RUNELITE.getId());
-				menuEntries[menuEntries.length - 1] = defaultOption;
-
-				client.setMenuEntries(menuEntries);
 			}
 		}
 	}
@@ -143,22 +140,6 @@ public class SpriteMarkersPlugin extends Plugin
 		if (gameStateChanged.getGameState() == GameState.LOGGED_IN)
 		{
 			loadSprites();
-		}
-	}
-
-	@Subscribe
-	public void onMenuOptionClicked(MenuOptionClicked menuOptionClicked)
-	{
-		if(menuOptionClicked.getMenuAction().getId() == MenuAction.RUNELITE.getId())
-		{
-			if(menuOptionClicked.getMenuOption().equals(ADD_SPRITE))
-			{
-				addTileSprite();
-			}
-			else if(menuOptionClicked.getMenuOption().equals(REMOVE_SPRITE))
-			{
-				removeTileSprite();
-			}
 		}
 	}
 
