@@ -7,6 +7,7 @@ import net.runelite.client.config.ConfigItem;
 @ConfigGroup("spriteMarkers")
 public interface SpriteMarkersConfig extends Config
 {
+	String SHOW_IMPORT = "show import";
 	@ConfigItem(
 			position = 1,
 			keyName = "showSprites",
@@ -86,4 +87,12 @@ public interface SpriteMarkersConfig extends Config
 	{
 		return "------";
 	}
+
+	@ConfigItem(
+			position = 9,
+			keyName = SHOW_IMPORT,
+			name = "Show Import/Export",
+			description = "Show the import and export options under the run minimap orb"
+	)
+	default boolean showImport() {return false;}
 }

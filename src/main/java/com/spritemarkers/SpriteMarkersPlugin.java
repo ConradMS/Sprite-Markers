@@ -15,6 +15,7 @@ import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -50,6 +51,9 @@ public class SpriteMarkersPlugin extends Plugin
 	private OverlayManager overlayManager;
 
 	@Inject
+	private ImportExportTool importExportTool;
+
+	@Inject
 	private Gson gson;
 
 	private final static int LEFT_CONTROL_KEYCODE = 82;
@@ -69,6 +73,7 @@ public class SpriteMarkersPlugin extends Plugin
 		overlayManager.add(overlay);
 		overlayManager.add(highlighterOverlay);
 		overlayManager.add(minimapSpriteOverlay);
+		importExportTool.addOptions();
 		loadSprites();
 	}
 
@@ -78,6 +83,7 @@ public class SpriteMarkersPlugin extends Plugin
 		overlayManager.remove(overlay);
 		overlayManager.remove(highlighterOverlay);
 		overlayManager.remove(minimapSpriteOverlay);
+		importExportTool.removeOptions();
 		spriteMarkersLoaded.clear();
 	}
 
@@ -203,6 +209,15 @@ public class SpriteMarkersPlugin extends Plugin
 		configManager.setConfiguration(CONFIG_GROUP, REGION + regionId, spriteMarkersToJson);
 	}
 
+	void saveSprite(int regionId, ArrayList<SpriteMarkerID> newSprites)
+	{
+		ArrayList<SpriteMarkerID> currPoints = jsonToSprite(regionId);
+		currPoints.addAll(newSprites);
+
+		String spriteMarkersToJson = gson.toJson(currPoints);
+		configManager.setConfiguration(CONFIG_GROUP, REGION + regionId, spriteMarkersToJson);
+	}
+
 	void loadSprites()
 	{
 		spriteMarkersLoaded.clear();
@@ -255,6 +270,22 @@ public class SpriteMarkersPlugin extends Plugin
 		}
 
 		return spriteMarkers;
+	}
+
+	@Subscribe
+	public void onConfigChanged(ConfigChanged configChanged)
+	{
+		if(configChanged.getGroup().equals(CONFIG_GROUP) && configChanged.getKey().equals(SpriteMarkersConfig.SHOW_IMPORT))
+		{
+			if(config.showImport())
+			{
+				importExportTool.addOptions();
+			}
+			else
+			{
+				importExportTool.removeOptions();
+			}
+		}
 	}
 
 

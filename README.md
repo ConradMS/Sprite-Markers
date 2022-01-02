@@ -23,3 +23,6 @@ Note that each sprite will save its own sprite Id and scale and that the small s
 ![Scaled sprite and large sprite](/assets/Example2.PNG)
 
 ![Sprites on Minimap](/assets/Minimap%20Example.png)
+
+### Importing/Exporting sprites
+You can export/import sprites to/from your clipboard. The option to is under the run energy minimap orb provided the option to show import/export options is on.
